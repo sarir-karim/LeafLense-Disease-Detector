@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Serve static site",
+			"type": "shell",
+			"command": "\"C:\\Program Files\\QGIS 3.40.6\\apps\\Python312\\python.exe\"",
+			"args": [
+				"-m",
+				"http.server",
+				"8000"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

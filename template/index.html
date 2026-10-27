@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LeafLens - Plant Disease Detector</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+           font-family: Arial, Helvetica, sans-serif; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+    .card { width: 100%; max-width: 460px; margin: 16px; padding: 28px; background: #fff;
+            border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.12); text-align: center; }
+    h1 { margin: 0; color: #2e7d32; }
+    .tagline { color: #555; margin: 8px 0 20px; }
+    .drop { display: block; padding: 24px; border: 2px dashed #66bb6a; border-radius: 12px;
+            cursor: pointer; color: #2e7d32; }
+    .drop img { max-width: 100%; max-height: 260px; border-radius: 8px; margin-top: 10px; }
+    button { margin-top: 16px; padding: 12px 24px; font-size: 16px; border: none; border-radius: 8px;
+             color: #fff; background: #2e7d32; cursor: pointer; }
+    button:disabled { background: #a5d6a7; cursor: not-allowed; }
+    .status { margin-top: 12px; min-height: 20px; color: #555; }
+    #result { margin-top: 12px; text-align: left; }
+    #mainLabel { color: #1b5e20; margin-bottom: 4px; }
+    ul { padding-left: 20px; color: #444; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>LeafLens</h1>
+    <p class="tagline">Upload a leaf photo and detect plant disease instantly.</p>
+
+    <label for="fileInput" class="drop">
+      <span id="dropText">Click to choose a leaf image</span>
+      <img id="preview" alt="Leaf preview" hidden>
+    </label>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+
+    <button id="analyzeBtn" disabled>Analyze Leaf</button>
+    <div id="status" class="status"></div>
+
+    <section id="result" hidden>
+      <h2 id="mainLabel"></h2>
+      <p id="mainConf"></p>
+      <h3>Other possibilities</h3>
+      <ul id="otherList"></ul>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const dropText = document.getElementById('dropText');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const statusBox = document.getElementById('status');
+    const resultBox = document.getElementById('result');
+    const mainLabel = document.getElementById('mainLabel');
+    const mainConf = document.getElementById('mainConf');
+    const otherList = document.getElementById('otherList');
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', () => {
+      selectedFile = fileInput.files[0];
+      if (!selectedFile) return;
+      preview.src = URL.createObjectURL(selectedFile);
+      preview.hidden = false;
+      dropText.textContent = selectedFile.name;
+      analyzeBtn.disabled = false;
+      resultBox.hidden = true;
+      statusBox.textContent = '';
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      analyzeBtn.disabled = true;
+      statusBox.style.color = '#555';
+      statusBox.textContent = 'Analyzing...';
+      try {
+        const response = await fetch('/predict', { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Prediction failed');
+        mainLabel.textContent = data.prediction.label;
+        mainConf.textContent = 'Confidence: ' + data.prediction.confidence + '%';
+        otherList.innerHTML = '';
+        data.top3.slice(1).forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = item.label + ' (' + item.confidence + '%)';
+          otherList.appendChild(li);
+        });
+        resultBox.hidden = false;
+        statusBox.textContent = '';
+      } catch (err) {
+        statusBox.style.color = '#c62828';
+        statusBox.textContent = 'Error: ' + err.message;
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
